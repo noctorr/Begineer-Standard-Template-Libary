@@ -1,4 +1,28 @@
+#include <stdexcept>
+#include <initializer_list>
+#include <type_traits>
 
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+
+namespace std {
+template < typename TYPE >
+class vector 
+{
+    private:
+    TYPE* array { nullptr };
+    uint32_t size { 0u };
+
+    public:
+    vector() {
+        array = new TYPE[1u];
+        size = 1u;
+    }
+
+    vector(
+        std::initializer_list<TYPE> arr
+    ) {
         uint32_t len = arr.size();
         array = new TYPE[len];
 
@@ -287,3 +311,4 @@
         delete vec;
     }
 };
+}
