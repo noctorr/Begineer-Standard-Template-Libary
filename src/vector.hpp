@@ -1,10 +1,11 @@
 #include <stdexcept>
 #include <initializer_list>
-#include <type_traits>
+#include "type_traits.hpp"
 
-typedef unsigned char uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned int uint32_t;
+using uint32_t = unsigned int;
+
+#ifndef VECTOR_HPP
+#define VECTOR_HPP
 
 namespace std {
 template < typename TYPE >
@@ -15,12 +16,12 @@ class vector
     uint32_t size { 0u };
 
     public:
-    vector() {
+    explicit vector() {
         array = new TYPE[1u];
         size = 1u;
     }
 
-    vector(
+    explicit vector(
         std::initializer_list<TYPE> arr
     ) {
         uint32_t len = arr.size();
@@ -41,7 +42,7 @@ class vector
         TYPE stackArr[size+1u];
         for ( uint32_t i { 0u }; i < size; i++ ) {
             stackArr[i] = array[i];
-            if ( std::is_integral_v<TYPE> ) {
+            if ( std::IS_INTEGRAL<TYPE> ) {
                 array[i] = 0;
             } else {
                 array[i] = nullptr;
@@ -56,17 +57,17 @@ class vector
         }
     }
 
-    uint32_t len ()
+    uint32_t len () const noexcept
     {
         return size;
     }
 
-    TYPE *&data ()
+    TYPE *&data () const noexcept
     {
         return &*array;
     }
 
-    bool is_sorted ()
+    const bool is_sorted () const noexcept
     {
         for ( uint32_t i { 1u }; i < size; i++ ) {
             if ( array[i] > array[i-1u] ) return false; 
@@ -74,8 +75,14 @@ class vector
         return true;
     }
 
+    const bool empty () const noexcept
+    {
+        return (size == 0u);
+    }
+
     void sort ()
     {
+        if (!std::IS_INTEGRAL<TYPE>) throw std::runtime_error("Cannot sort a non-number list.");
         while (!is_sorted()) {
             for ( uint32_t i { 1u }; i < size; i++ ) {
                 if ( array[i] > array[i-1u] ) {
@@ -88,13 +95,13 @@ class vector
         }
     }
 
-    void resize ( uint32_t x )
+    void resize ( uint32_t x ) noexcept
     {
         TYPE stackArr[x];
         if ( x > size ) {
             for ( uint32_t i { 0u }; i < x; i++ ) {
                 if ( x-1 < size-1 ) {
-                    if ( std::is_integral_v<TYPE> ) {
+                    if ( std::IS_INTEGRAL<TYPE> ) {
                         stackArr[i] = 0;
                     } else {
                         stackArr[i] = nullptr;
@@ -111,7 +118,7 @@ class vector
             return;
         }
 
-        if ( std::is_integral_v<TYPE> ) {
+        if ( std::IS_INTEGRAL<TYPE> ) {
             for ( uint32_t i { 0u }; i < size; i++ ) {
                 array[i] = 0;
             }
@@ -131,9 +138,9 @@ class vector
         size = x;
     }
 
-    void clear ()
+    void clear () noexcept
     {
-        if (std::is_integral_v<TYPE>) {
+        if (std::IS_INTEGRAL<TYPE>) {
             for ( TYPE &i : array ) {
                 i = 0;
             }
@@ -144,7 +151,7 @@ class vector
         }
     }
 
-    void emplace ( TYPE& value, uint32_t index )
+    void emplace ( TYPE& value, uint32_t index ) noexcept
     {
         if (index > size - 1u) {
             TYPE stackArray[index];
@@ -152,7 +159,7 @@ class vector
                 stackArray[i] = array[i];
             }
 
-            if (std::is_integral_v<TYPE>) {
+            if (std::IS_INTEGRAL<TYPE>) {
                 for ( TYPE &i : array ) {
                     i = 0;
                 }
@@ -177,28 +184,59 @@ class vector
         }
     }
 
-    TYPE &front ()
+    void insert ( TYPE& value, uint32_t index )
+    {
+        if (index > size - 1u) throw std::out_of_range("Index larger than vector.");
+
+        array[index] = value;
+    }
+
+    void reserve ( uint32_t capacity )
+    {
+        if (size + capacity < size) throw std::out_of_range("Capacity parameter leads to reset of size.");
+        size += capacity;
+
+        TYPE stackArray[size];
+        for ( uint32_t i { 0u }; i < size; i++ ) {
+            stackArray[i] = array[i];
+            if ( std::IS_INTEGRAL<TYPE> ) {
+                array[i] = 0;
+            } else {
+                array[i] = nullptr;
+            }
+        }
+
+        delete[] array;
+
+        array = new TYPE[size];
+
+        for ( uint32_t i { 0u }; i < size; i++ ) {
+            array[i] = stackArray[i];
+        }
+    }
+
+    TYPE &front () const noexcept
     {
         return *array[0];
     }
 
-    TYPE &back ()
+    TYPE &back () const noexcept
     {
         return *array[size-1u];
     }
 
-    TYPE &at ( uint32_t index )
+    TYPE &at ( uint32_t index ) const noexcept
     {
         if ( index > size ) throw std::out_of_range("idiot");
         return *array[index];
     }
 
-    TYPE &operator[] ( uint32_t index )
+    TYPE &operator[] ( uint32_t index ) const noexcept
     {
         return *array[index];
     }
 
-    void operator= ( vector &vec )
+    void operator= ( vector &vec ) noexcept
     {
         TYPE *arr = vec.data();
         uint32_t length = vec.len();
@@ -223,7 +261,7 @@ class vector
     {
         NUMBER_TYPE *arr = vec.data();
         uint32_t length = vec.len();
-        if (!(std::is_integral_v<TYPE> && std::is_integral_v<NUMBER_TYPE>)) throw std::domain_error("LOOOOOL");
+        if (!(std::IS_INTEGRAL<TYPE> && std::IS_INTEGRAL<NUMBER_TYPE>)) throw std::domain_error("Cannot perform arithmetic operations on vector.");
 
         if (length > size) {
             for (uint32_t i { 0u }; i < size; i++) {
@@ -245,7 +283,7 @@ class vector
     {
         NUMBER_TYPE *arr = vec.data();
         uint32_t length = vec.len();
-        if (!(std::is_integral_v<TYPE> && std::is_integral_v<NUMBER_TYPE>)) throw std::domain_error("LOOOOOL");
+        if (!(std::IS_INTEGRAL<TYPE> && std::IS_INTEGRAL<NUMBER_TYPE>)) throw std::domain_error("Cannot perfrom arithmetic operations on vector.");
 
         if (length > size) {
             for (uint32_t i { 0u }; i < size; i++) {
@@ -267,7 +305,7 @@ class vector
     {
         NUMBER_TYPE *arr = vec.data();
         uint32_t length = vec.len();
-        if (!(std::is_integral_v<TYPE> && std::is_integral_v<NUMBER_TYPE>)) throw std::domain_error("LOOOOOL");
+        if (!(std::IS_INTEGRAL<TYPE> && std::IS_INTEGRAL<NUMBER_TYPE>)) throw std::domain_error("Cannot perform arithmetic operations on vector.");
 
         if (length > size) {
             for (uint32_t i { 0u }; i < size; i++) {
@@ -289,7 +327,7 @@ class vector
     {
         NUMBER_TYPE *arr = vec.data();
         uint32_t length = vec.len();
-        if (!(std::is_integral_v<TYPE> && std::is_integral_v<NUMBER_TYPE>)) throw std::domain_error("LOOOOOL");
+        if (!(std::IS_INTEGRAL<TYPE> && std::IS_INTEGRAL<NUMBER_TYPE>)) throw std::domain_error("Cannot perform arithmetic operations on vector.");
 
         if (length > size) {
             for (uint32_t i { 0u }; i < size; i++) {
@@ -312,3 +350,5 @@ class vector
     }
 };
 }
+
+#endif
