@@ -42,6 +42,3 @@ inline constexpr bool IS_INTEGRAL = ISA_INTEGRAL<TYPE>::VALUE;
 }
 
 #endif
-}
-
-#endif
