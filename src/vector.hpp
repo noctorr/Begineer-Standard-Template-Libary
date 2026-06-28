@@ -27,8 +27,9 @@ class vector
         uint32_t len = arr.size();
         array = new TYPE[len];
 
+        auto BACK = arr.back();
         for ( uint32_t i { 0u }; i < len; i++ ) {
-            array[i] = arr[i];
+            array[i] = *(BACK + i);
         }
         size = len;
     }
@@ -57,20 +58,20 @@ class vector
         }
     }
 
-    uint32_t len () const noexcept
+    constexpr uint32_t len () const noexcept
     {
         return size;
     }
 
-    TYPE *&data () const noexcept
+    TYPE *data () const noexcept
     {
-        return &*array;
+        return array;
     }
 
     const bool is_sorted () const noexcept
     {
         for ( uint32_t i { 1u }; i < size; i++ ) {
-            if ( array[i] > array[i-1u] ) return false; 
+            if ( array[i] < array[i-1u] ) return false; 
         }
         return true;
     }
@@ -85,11 +86,11 @@ class vector
         if (!std::IS_INTEGRAL<TYPE>) throw std::runtime_error("Cannot sort a non-number list.");
         while (!is_sorted()) {
             for ( uint32_t i { 1u }; i < size; i++ ) {
-                if ( array[i] > array[i-1u] ) {
+                if ( array[i] < array[i-1u] ) {
                     TYPE X1 = array[i];
                     TYPE X2 = array[i-1u];
                     array[i] = X2;
-                    array[i-1] = X1;
+                    array[i-1u] = X1;
                 }
             }
         }
@@ -100,7 +101,7 @@ class vector
         TYPE stackArr[x];
         if ( x > size ) {
             for ( uint32_t i { 0u }; i < x; i++ ) {
-                if ( x-1 < size-1 ) {
+                if ( i > size-1u ) {
                     if ( std::IS_INTEGRAL<TYPE> ) {
                         stackArr[i] = 0;
                     } else {
@@ -141,12 +142,12 @@ class vector
     void clear () noexcept
     {
         if (std::IS_INTEGRAL<TYPE>) {
-            for ( TYPE &i : array ) {
-                i = 0;
+            for ( uint32_t i { 0u }; i < size; i++ ) {
+                array[i] = 0;
             }
         } else {
-            for ( TYPE &i : array ) {
-                i = nullptr;
+            for ( uint32_t i { 0u }; i < size; i++ ) {
+                array[i] = nullptr;
             }
         }
     }
@@ -160,12 +161,12 @@ class vector
             }
 
             if (std::IS_INTEGRAL<TYPE>) {
-                for ( TYPE &i : array ) {
-                    i = 0;
+                for ( uint32_t i { 0u }; i < size; i++ ) {
+                    array[i] = 0;
                 }
             } else {
-                for ( TYPE &i : array ) {
-                    i = nullptr;
+                for ( uint32_t i { 0u }; i < size; i++ ) {
+                    array[i] = nullptr;
                 }
             }
 
@@ -215,17 +216,19 @@ class vector
         }
     }
 
-    TYPE &front () const noexcept
+    TYPE &front () const
     {
+        if ( size == 0 ) throw std::runtime_error("Empty vector.");
         return *array[0];
     }
 
-    TYPE &back () const noexcept
+    TYPE &back () const
     {
+        if ( size == 0 ) throw std::runtime_error("Empty vector.");
         return *array[size-1u];
     }
 
-    TYPE &at ( uint32_t index ) const noexcept
+    TYPE &at ( uint32_t index ) const
     {
         if ( index > size ) throw std::out_of_range("idiot");
         return *array[index];
@@ -257,92 +260,123 @@ class vector
     }
 
     template < typename NUMBER_TYPE >
-    void operator+ ( vector &vec )
+    requires std::IS_INTEGRAL<TYPE> && std::IS_INTEGRAL<NUMBER_TYPE>
+    auto operator+ ( vector<NUMBER_TYPE> &vec ) noexcept
     {
-        NUMBER_TYPE *arr = vec.data();
-        uint32_t length = vec.len();
-        if (!(std::IS_INTEGRAL<TYPE> && std::IS_INTEGRAL<NUMBER_TYPE>)) throw std::domain_error("Cannot perform arithmetic operations on vector.");
+        using RESULT_TYPE = decltype(TYPE{} + NUMBER_TYPE{});
+        constexpr uint32_t length = vec.len();
+        vector<RESULT_TYPE> result;
+        result.resize((length > size) ? size : length);
 
-        if (length > size) {
-            for (uint32_t i { 0u }; i < size; i++) {
-                array[i] += static_cast<TYPE>(arr[i]);
+        if ( length > size ) {
+            for ( uint32_t i { 0u }; i < size; i++ ) {
+                array[i] += static_cast<TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(array[i]);
             }
-        } else if (size > length) {
-            for (uint32_t i { 0u }; i < length; i++) {
-                array[i] += static_cast<TYPE>(arr[i]);
+        } else if ( size > length ) {
+            for ( uint32_t i { 0u }; i < length; i++ ) {
+                array[i] +=  static_cast<TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(array[i]);
             }
         } else {
-            for (uint32_t i { 0u }; i < size; i++) {
-                array[i] += static_cast<TYPE>(arr[i]);
+            for ( uint32_t i { 0u }; i < length; i++ ) {
+                array[i] += static_cast<TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(array[i]);
             }
         }
+
+        return result;
     }
 
     template < typename NUMBER_TYPE >
-    void operator- ( vector &vec )
+    requires std::IS_INTEGRAL<TYPE> && std::IS_INTEGRAL<NUMBER_TYPE>
+    auto operator- ( vector<NUMBER_TYPE> &vec ) noexcept
     {
-        NUMBER_TYPE *arr = vec.data();
-        uint32_t length = vec.len();
-        if (!(std::IS_INTEGRAL<TYPE> && std::IS_INTEGRAL<NUMBER_TYPE>)) throw std::domain_error("Cannot perfrom arithmetic operations on vector.");
+        using RESULT_TYPE = decltype(TYPE{} + NUMBER_TYPE{});
+        constexpr uint32_t length = vec.len();
+        vector<RESULT_TYPE> result;
+        result.resize((length > size) ? size : length);
 
-        if (length > size) {
-            for (uint32_t i { 0u }; i < size; i++) {
-                array[i] -= static_cast<TYPE>(arr[i]);
+        if ( length > size ) {
+            for ( uint32_t i { 0u }; i < size; i++ ) {
+                array[i] -= static_cast<TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(array[i]);
             }
-        } else if (size > length) {
-            for (uint32_t i { 0u }; i < length; i++) {
-                array[i] -= static_cast<TYPE>(arr[i]);
+        } else if ( size > length ) {
+            for ( uint32_t i { 0u }; i < length; i++ ) {
+                array[i] -=  static_cast<TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(array[i]);
             }
         } else {
-            for (uint32_t i { 0u }; i < size; i++) {
-                array[i] -= static_cast<TYPE>(arr[i]);
+            for ( uint32_t i { 0u }; i < length; i++ ) {
+                array[i] -= static_cast<TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(array[i]);
             }
         }
+
+        return result;
     }
+
 
     template < typename NUMBER_TYPE >
-    void operator* ( vector &vec )
+    requires std::IS_INTEGRAL<TYPE> && std::IS_INTEGRAL<NUMBER_TYPE>
+    auto operator* ( vector<NUMBER_TYPE> &vec ) noexcept
     {
-        NUMBER_TYPE *arr = vec.data();
-        uint32_t length = vec.len();
-        if (!(std::IS_INTEGRAL<TYPE> && std::IS_INTEGRAL<NUMBER_TYPE>)) throw std::domain_error("Cannot perform arithmetic operations on vector.");
+        using RESULT_TYPE = decltype(TYPE{} + NUMBER_TYPE{});
+        constexpr uint32_t length = vec.len();
+        vector<RESULT_TYPE> result;
+        result.resize((length > size) ? size : length);
 
-        if (length > size) {
-            for (uint32_t i { 0u }; i < size; i++) {
-                array[i] *= static_cast<TYPE>(arr[i]);
+        if ( length > size ) {
+            for ( uint32_t i { 0u }; i < size; i++ ) {
+                array[i] *= static_cast<TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(array[i]);
             }
-        } else if (size > length) {
-            for (uint32_t i { 0u }; i < length; i++) {
-                array[i] *= static_cast<TYPE>(arr[i]);
+        } else if ( size > length ) {
+            for ( uint32_t i { 0u }; i < length; i++ ) {
+                array[i] *=  static_cast<TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(array[i]);
             }
         } else {
-            for (uint32_t i { 0u }; i < size; i++) {
-                array[i] *= static_cast<TYPE>(arr[i]);
+            for ( uint32_t i { 0u }; i < length; i++ ) {
+                array[i] *= static_cast<TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(array[i]);
             }
         }
+
+        return result;
     }
+
 
     template < typename NUMBER_TYPE >
-    void operator/ ( vector &vec )
+    requires std::IS_INTEGRAL<TYPE> && std::IS_INTEGRAL<NUMBER_TYPE>
+    auto operator/ ( vector<NUMBER_TYPE> &vec ) noexcept
     {
-        NUMBER_TYPE *arr = vec.data();
-        uint32_t length = vec.len();
-        if (!(std::IS_INTEGRAL<TYPE> && std::IS_INTEGRAL<NUMBER_TYPE>)) throw std::domain_error("Cannot perform arithmetic operations on vector.");
+        using RESULT_TYPE = decltype(TYPE{} + NUMBER_TYPE{});
+        constexpr uint32_t length = vec.len();
+        vector<RESULT_TYPE> result;
+        result.resize((length > size) ? size : length);
 
-        if (length > size) {
-            for (uint32_t i { 0u }; i < size; i++) {
-                array[i] /= static_cast<TYPE>(arr[i]);
+        if ( length > size ) {
+            for ( uint32_t i { 0u }; i < size; i++ ) {
+                array[i] /= static_cast<TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(array[i]);
             }
-        } else if (size > length) {
-            for (uint32_t i { 0u }; i < length; i++) {
-                array[i] /= static_cast<TYPE>(arr[i]);
+        } else if ( size > length ) {
+            for ( uint32_t i { 0u }; i < length; i++ ) {
+                array[i] /=  static_cast<TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(array[i]);
             }
         } else {
-            for (uint32_t i { 0u }; i < size; i++) {
-                array[i] /= static_cast<TYPE>(arr[i]);
+            for ( uint32_t i { 0u }; i < length; i++ ) {
+                array[i] /= static_cast<TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(array[i]);
             }
         }
+
+        return result;
     }
+
 
     static void destroy ( vector &vec )
     {
