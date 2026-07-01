@@ -1,386 +1,433 @@
-#include <stdexcept>
-#include <initializer_list>
 #include "type_traits.hpp"
-
-using uint32_t = unsigned int;
+#include "cstdint.hpp"
+#include "initialiser_list.hpp"
+#include <stdexcept>
 
 #ifndef VECTOR_HPP
 #define VECTOR_HPP
 
 namespace std {
-template < typename TYPE >
-class vector 
+template < typename __TYPE >
+class vector
 {
-    private:
-    TYPE* array { nullptr };
-    uint32_t size { 0u };
+    protected:
+    __TYPE* m_selfArray { nullptr };
+    std::uint32 m_size { 0 };
+    std::uint32 m_capacity { 0 };
 
     public:
-    explicit vector() {
-        array = new TYPE[1u];
-        size = 1u;
+    explicit vector () noexcept {
+        m_selfArray = new __TYPE[10];
+        m_capacity = 10;
     }
 
-    explicit vector(
-        std::initializer_list<TYPE> arr
-    ) {
-        uint32_t len = arr.size();
-        array = new TYPE[len];
+    explicit vector (
+        std::initialiser_list<__TYPE> LIST
+    ) noexcept {
+        std::uint32 size = LIST.size();
+        m_selfArray = new __TYPE[size];
 
-        auto BACK = arr.back();
-        for ( uint32_t i { 0u }; i < len; i++ ) {
-            array[i] = *(BACK + i);
+        __TYPE* back = LIST.back();
+        for ( std::uint32 i { 0 }; i < size; i++ ) {
+            m_selfArray[i] = *(back + i);
         }
-        size = len;
+        m_size = size;
+        m_capacity = size;
     }
 
-    ~vector() {
-        delete[] array;
+    vector(vector&& vec) {
+        if ( this == &vec ) throw std::logic_error("Cannot move own vector.");
+        delete[] m_selfArray;
+
+        m_selfArray = vec.m_selfArray;
+        m_size = vec.m_size;
+        m_capacity = vec.m_capacity;
+        
     }
 
-    void push_back ( TYPE value ) noexcept
+    vector(const vector& vec) noexcept {
+        delete[] m_selfArray;
+
+        m_selfArray = vec.m_selfArray;
+        m_size = vec.m_size;
+        m_capacity = vec.m_capacity;
+    }
+
+    void operator= ( const vector& vec ) noexcept
     {
-        TYPE stackArr[size+1u];
-        for ( uint32_t i { 0u }; i < size; i++ ) {
-            stackArr[i] = array[i];
-            if ( std::IS_INTEGRAL<TYPE> ) {
-                array[i] = 0;
-            } else {
-                array[i] = nullptr;
-            }
+        delete[] m_selfArray;
+
+        m_selfArray = vec.m_selfArray;
+        m_size = vec.m_size;
+        m_capacity = vec.m_capacity;
+    }
+
+    vector& operator= ( vector&& vec ) noexcept
+    {
+        if ( this != &vec ) {
+            delete[] m_selfArray;
+
+            m_selfArray = vec.m_selfArray;
+            m_size = vec.m_size;
+            m_capacity = vec.m_capacity;
+
+            vec.m_selfArray = nullptr;
+            vec.m_size = 0;
+            vec.m_capacity = 0;
         }
-        stackArr[size+1u] = value;
-        delete[] array;
-        size += 1u;
-        array = new TYPE[size];
-        for ( uint32_t i { 0u }; i < size; i++ ) {
-            array[i] = stackArr[i];
+
+        return *this;
+    }
+
+    ~vector () {
+        delete[] m_selfArray;
+    }
+
+    void push_back ( __TYPE VALUE ) noexcept
+    {
+        __TYPE stackArray[m_size+1];
+        for ( std::uint32 i { 0 }; i < m_size; i++ ) {
+            stackArray[i] = m_selfArray[i];
+        }
+        stackArray[m_size+1] = VALUE;
+        m_size += 1;
+        m_capacity += 1;
+
+        delete[] m_selfArray;
+
+        m_selfArray = new __TYPE[m_capacity];
+
+        for ( std::uint32 i { 0 }; i < m_size; i++ ) {
+            m_selfArray[i] = stackArray[i];
         }
     }
 
-    constexpr uint32_t len () const noexcept
+    std::uint32 size () const noexcept
     {
-        return size;
+        return m_size;
     }
 
-    TYPE *data () const noexcept
+    std::uint32 capacity () const noexcept
     {
-        return array;
+        return m_capacity;
     }
 
-    const bool is_sorted () const noexcept
+    consteval std::uint32 c_size () const noexcept
     {
-        for ( uint32_t i { 1u }; i < size; i++ ) {
-            if ( array[i] < array[i-1u] ) return false; 
-        }
-        return true;
+        return m_size;
+    }
+
+    consteval std::uint32  c_capacity () const noexcept
+    {
+        return m_capacity;
+    }
+
+    __TYPE* data () const noexcept
+    {
+        return m_selfArray;
     }
 
     const bool empty () const noexcept
     {
-        return (size == 0u);
+        return (m_size == 0);
     }
 
-    void sort ()
+    const bool is_sorted () const noexcept requires std::IS_INTEGRAL<__TYPE>
     {
-        if (!std::IS_INTEGRAL<TYPE>) throw std::runtime_error("Cannot sort a non-number list.");
-        while (!is_sorted()) {
-            for ( uint32_t i { 1u }; i < size; i++ ) {
-                if ( array[i] < array[i-1u] ) {
-                    TYPE X1 = array[i];
-                    TYPE X2 = array[i-1u];
-                    array[i] = X2;
-                    array[i-1u] = X1;
+        for ( std::uint32 i { 1 }; i < m_size; i++ ) {
+            if ( m_selfArray[i] < m_selfArray[i-1] ) return false;
+        }
+        return true;
+    }
+
+    void sort () requires std::IS_INTEGRAL<__TYPE>
+    {
+        while ( !is_sorted() ) {
+            for ( std::uint32 i { 1 }; i < m_size; i++ ) {
+                if ( m_selfArray[i] < m_selfArray[i-1] ) {
+                    __TYPE greaterNum = m_selfArray[i-1];
+                    __TYPE smallerNum = m_selfArray[i];
+                    m_selfArray[i] = smallerNum;
+                    m_selfArray[i-1] = greaterNum;
                 }
             }
         }
+    } 
+
+    void release ()
+    {
+        if constexpr ( std::IS_INTEGRAL<__TYPE> ) {
+            for ( std::uint32 i { 0 }; i < m_size; i++ ) {
+                m_selfArray[i] = static_cast<__TYPE>(0);
+            }
+        } else {
+            for ( std::uint32 i { 0 }; i < m_size; i++ ) {
+                m_selfArray[i] = nullptr;
+            }
+        }
     }
 
-    void resize ( uint32_t x ) noexcept
+    void resize ( std::uint32 NEW_CAPACITY ) noexcept
     {
-        TYPE stackArr[x];
-        if ( x > size ) {
-            for ( uint32_t i { 0u }; i < x; i++ ) {
-                if ( i > size-1u ) {
-                    if ( std::IS_INTEGRAL<TYPE> ) {
-                        stackArr[i] = 0;
-                    } else {
-                        stackArr[i] = nullptr;
-                    }
-                } else {
-                    stackArr[i] = array[i];
-                }
+        if ( NEW_CAPACITY == m_capacity ) return;
+
+        __TYPE* Cpy_heapArray = new __TYPE[NEW_CAPACITY];
+        if ( NEW_CAPACITY > m_size && std::IS_INTEGRAL<__TYPE> ) {
+            for ( std::uint32 i { 0 }; i < m_capacity; i++ ) {
+                Cpy_heapArray[i] = m_selfArray[i];
             }
-        } else if ( x < size ) {
-            for ( uint32_t i { 0u }; i < x; i++ ) {
-                stackArr[i] = array[i];
+
+            for ( std::uint32 i { m_size+1 }; i < NEW_CAPACITY; i++ ) {
+                Cpy_heapArray[i] = static_cast<__TYPE>(0);
+            }
+        } else if ( m_capacity > NEW_CAPACITY ) {
+            for ( std::uint32 i { 0 }; i < NEW_CAPACITY; i++ ) {
+                Cpy_heapArray[i] = m_selfArray[i];
             }
         } else {
-            return;
-        }
-
-        if ( std::IS_INTEGRAL<TYPE> ) {
-            for ( uint32_t i { 0u }; i < size; i++ ) {
-                array[i] = 0;
-            }
-        } else {
-            for ( uint32_t i { 0u }; i < size; i++ ) {
-                array[i] = nullptr;
+            for ( std::uint32 i { 0 }; i < m_size; i++ ) {
+                Cpy_heapArray[i] = m_selfArray[i];
             }
         }
 
-        delete[] array;
+        delete[] m_selfArray;
 
-        array = new TYPE[x];
+        m_selfArray = new __TYPE[NEW_CAPACITY];
 
-        for ( uint32_t i { 0u }; i < x; i++ ) {
-            array[i] = stackArr[i];
+        for ( std::uint32 i { 0 }; i < NEW_CAPACITY; i++ ) {
+            m_selfArray[i] = Cpy_heapArray[i];
         }
-        size = x;
+
+        m_capacity = NEW_CAPACITY;
+        delete[] Cpy_heapArray;
     }
 
     void clear () noexcept
     {
-        if (std::IS_INTEGRAL<TYPE>) {
-            for ( uint32_t i { 0u }; i < size; i++ ) {
-                array[i] = 0;
+        if constexpr ( std::IS_INTEGRAL<__TYPE> ) {
+            for ( std::uint32 i { 0 }; i < m_size; i++ ) {
+                m_selfArray[i] = static_cast<__TYPE>(0);
             }
         } else {
-            for ( uint32_t i { 0u }; i < size; i++ ) {
-                array[i] = nullptr;
+            for ( std::uint32 i { 0 }; i < m_size; i++ ) {
+                m_selfArray[i] = nullptr;
             }
         }
     }
 
-    void emplace ( TYPE& value, uint32_t index ) noexcept
+    void emplace ( std::uint32 index, __TYPE& value ) noexcept
     {
-        if (index > size - 1u) {
-            TYPE stackArray[index];
-            for (uint32_t i { 0u }; i < size; i++) {
-                stackArray[i] = array[i];
+        if ( index > m_capacity - 1 ) {
+            __TYPE* Cpy_heapArray = new __TYPE[index];
+
+            for ( std::uint32 i { 0 }; i < m_size; i++ ) {
+                Cpy_heapArray[i] = m_selfArray[i];
             }
 
-            if (std::IS_INTEGRAL<TYPE>) {
-                for ( uint32_t i { 0u }; i < size; i++ ) {
-                    array[i] = 0;
-                }
+            Cpy_heapArray[index] = value;
+            m_capacity = index + 5;
+
+            delete[] m_selfArray;
+
+            m_selfArray = new __TYPE[index + 5];
+
+            for ( std::uint32 i { 0 }; i < m_size; i++ ) {
+                m_selfArray[i] = Cpy_heapArray[i];
+            }
+
+            m_size = index;
+
+            m_selfArray[index] = value;
+
+            delete[] Cpy_heapArray;
+        } else {
+            m_selfArray[index] = value;
+        }
+    }
+
+    void insert ( std::uint32 index, __TYPE& value ) noexcept
+    {
+        if ( index > m_capacity - 1 ) throw std::out_of_range("Out of vector's range.");
+
+        m_selfArray[index] = value;
+    }
+
+    void reserve ( std::uint32 capacity )
+    {
+        if ( m_capacity + capacity < m_capacity ) throw std::out_of_range("Capacity leads to the reset of the vector's capacity.");
+
+        std::uint32 newCap = m_capacity + capacity;
+        __TYPE Cpy_heapArray = new __TYPE[newCap];
+        for ( std::uint32 i { 0 }; i < m_capacity; i++ ) {
+            Cpy_heapArray[i] = m_selfArray[i];
+        }
+
+        delete[] m_selfArray;
+
+        m_selfArray = new __TYPE[newCap];
+
+        for ( std::uint32 i { 0 }; i < m_capacity; i++ ) {
+            m_selfArray[i] = Cpy_heapArray[i];
+        }
+
+        m_capacity += capacity;
+
+        delete[] Cpy_heapArray;
+    }
+
+    void reverse () requires std::IS_INTEGRAL<__TYPE>
+    {
+        __TYPE Cpy_stackArray[m_size] = *m_selfArray;
+        std::uint32 medianNumber = (m_size % 2 == 0) ? 
+            m_size / 2 : 
+            std::uint32(double(m_size) / 2.0) + 2;
+        
+        for ( std::uint32 i { 0 }; i <= m_size - 1; i++ ) {
+            if ( i >= medianNumber ) {
+                m_selfArray[i] = Cpy_stackArray[m_size - i];
             } else {
-                for ( uint32_t i { 0u }; i < size; i++ ) {
-                    array[i] = nullptr;
-                }
-            }
-
-            delete[] array;
-
-            stackArray[index] = value;
-            array = new TYPE[index];
-
-            for ( uint32_t i { 0u }; i < index; i++ ) {
-                array[i] = stackArray[i];
-            }
-
-            size = index;
-        } else {
-            array[index] = value;
-        }
-    }
-
-    void insert ( TYPE& value, uint32_t index )
-    {
-        if (index > size - 1u) throw std::out_of_range("Index larger than vector.");
-
-        array[index] = value;
-    }
-
-    void reserve ( uint32_t capacity )
-    {
-        if (size + capacity < size) throw std::out_of_range("Capacity parameter leads to reset of size.");
-        size += capacity;
-
-        TYPE stackArray[size];
-        for ( uint32_t i { 0u }; i < size; i++ ) {
-            stackArray[i] = array[i];
-            if ( std::IS_INTEGRAL<TYPE> ) {
-                array[i] = 0;
-            } else {
-                array[i] = nullptr;
+                m_selfArray[i] = m_selfArray[m_size - i];
             }
         }
-
-        delete[] array;
-
-        array = new TYPE[size];
-
-        for ( uint32_t i { 0u }; i < size; i++ ) {
-            array[i] = stackArray[i];
-        }
     }
 
-    TYPE &front () const
+    __TYPE& begin () const
     {
-        if ( size == 0 ) throw std::runtime_error("Empty vector.");
-        return *array[0];
+        if ( m_size == 0 ) throw std::logic_error("Empty vector.");
+        return m_selfArray[0];
     }
 
-    TYPE &back () const
+    __TYPE& end () const
     {
-        if ( size == 0 ) throw std::runtime_error("Empty vector.");
-        return *array[size-1u];
+        if ( m_size == 0 ) throw std::logic_error("Empty vector.");
+        return m_selfArray[m_size - 1];
     }
 
-    TYPE &at ( uint32_t index ) const
+    __TYPE& at ( std::uint32 index ) const
     {
-        if ( index > size ) throw std::out_of_range("idiot");
-        return *array[index];
+        if ( index > m_size ) throw std::out_of_range("Index is larger than the vector's size.");
+        return m_selfArray[index];
     }
 
-    TYPE &operator[] ( uint32_t index ) const noexcept
+    __TYPE& operator[] ( std::uint32 index ) const
     {
-        return *array[index];
+        return m_selfArray[index];
     }
 
-    void operator= ( vector &vec ) noexcept
+    template < typename __NUMBER_TYPE >
+    requires std::IS_INTEGRAL<__TYPE> && std::IS_INTEGRAL<__NUMBER_TYPE>
+    consteval auto operator+ ( const vector& vec ) noexcept
     {
-        TYPE *arr = vec.data();
-        uint32_t length = vec.len();
-        TYPE stackArr[length];
-        size = length;
-
-        for (uint32_t i { 0u }; i < length; i++) {
-            stackArr[i] = arr[i];
-        }
-
-        delete[] array;
-
-        array = new TYPE[length];
-
-        for (uint32_t i { 0u }; i < length; i++) {
-            array[i] = stackArr[i];
-        }
-    }
-
-    template < typename NUMBER_TYPE >
-    requires std::IS_INTEGRAL<TYPE> && std::IS_INTEGRAL<NUMBER_TYPE>
-    auto operator+ ( vector<NUMBER_TYPE> &vec ) noexcept
-    {
-        using RESULT_TYPE = decltype(TYPE{} + NUMBER_TYPE{});
-        constexpr uint32_t length = vec.len();
+        using RESULT_TYPE = decltype(__NUMBER_TYPE { } + __TYPE { });
+        constexpr std::uint32 length = vec.c_size();
         vector<RESULT_TYPE> result;
-        result.resize((length > size) ? size : length);
+        result.resize((length > m_size) ? m_size : length);
 
-        if ( length > size ) {
-            for ( uint32_t i { 0u }; i < size; i++ ) {
-                array[i] += static_cast<TYPE>(vec[i]);
-                result[i] = static_cast<RESULT_TYPE>(array[i]);
+        if ( length > m_size ) {
+            for ( std::uint32 i { 0 }; i < m_size; i++ ) {
+                m_selfArray[i] += static_cast<__TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(m_selfArray[i]);
             }
-        } else if ( size > length ) {
-            for ( uint32_t i { 0u }; i < length; i++ ) {
-                array[i] +=  static_cast<TYPE>(vec[i]);
-                result[i] = static_cast<RESULT_TYPE>(array[i]);
+        } else if ( m_size > length ) {
+            for ( std::uint32 i { 0 }; i < length; i++ ) {
+                m_selfArray[i] += static_cast<__TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(m_selfArray[i]);
             }
         } else {
-            for ( uint32_t i { 0u }; i < length; i++ ) {
-                array[i] += static_cast<TYPE>(vec[i]);
-                result[i] = static_cast<RESULT_TYPE>(array[i]);
+            for ( std::uint32 i { 0 }; i < length; i++ ) {
+                m_selfArray[i] += static_cast<__TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(m_selfArray[i]);
             }
         }
 
         return result;
     }
 
-    template < typename NUMBER_TYPE >
-    requires std::IS_INTEGRAL<TYPE> && std::IS_INTEGRAL<NUMBER_TYPE>
-    auto operator- ( vector<NUMBER_TYPE> &vec ) noexcept
+    template < typename __NUMBER_TYPE >
+    requires std::IS_INTEGRAL<__TYPE> && std::IS_INTEGRAL<__NUMBER_TYPE>
+    consteval auto operator- ( const vector& vec ) noexcept
     {
-        using RESULT_TYPE = decltype(TYPE{} + NUMBER_TYPE{});
-        constexpr uint32_t length = vec.len();
+        using RESULT_TYPE = decltype(__NUMBER_TYPE { } + __TYPE { });
+        constexpr std::uint32 length = vec.c_size();
         vector<RESULT_TYPE> result;
-        result.resize((length > size) ? size : length);
+        result.resize((length > m_size) ? m_size : length);
 
-        if ( length > size ) {
-            for ( uint32_t i { 0u }; i < size; i++ ) {
-                array[i] -= static_cast<TYPE>(vec[i]);
-                result[i] = static_cast<RESULT_TYPE>(array[i]);
+        if ( length > m_size ) {
+            for ( std::uint32 i { 0 }; i < m_size; i++ ) {
+                m_selfArray[i] -= static_cast<__TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(m_selfArray[i]);
             }
-        } else if ( size > length ) {
-            for ( uint32_t i { 0u }; i < length; i++ ) {
-                array[i] -=  static_cast<TYPE>(vec[i]);
-                result[i] = static_cast<RESULT_TYPE>(array[i]);
+        } else if ( m_size > length ) {
+            for ( std::uint32 i { 0 }; i < length; i++ ) {
+                m_selfArray[i] -= static_cast<__TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(m_selfArray[i]);
             }
         } else {
-            for ( uint32_t i { 0u }; i < length; i++ ) {
-                array[i] -= static_cast<TYPE>(vec[i]);
-                result[i] = static_cast<RESULT_TYPE>(array[i]);
+            for ( std::uint32 i { 0 }; i < length; i++ ) {
+                m_selfArray[i] -= static_cast<__TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(m_selfArray[i]);
             }
         }
 
         return result;
     }
 
-
-    template < typename NUMBER_TYPE >
-    requires std::IS_INTEGRAL<TYPE> && std::IS_INTEGRAL<NUMBER_TYPE>
-    auto operator* ( vector<NUMBER_TYPE> &vec ) noexcept
+    template < typename __NUMBER_TYPE >
+    requires std::IS_INTEGRAL<__TYPE> && std::IS_INTEGRAL<__NUMBER_TYPE>
+    consteval auto operator* ( const vector& vec ) noexcept
     {
-        using RESULT_TYPE = decltype(TYPE{} + NUMBER_TYPE{});
-        constexpr uint32_t length = vec.len();
+        using RESULT_TYPE = decltype(__NUMBER_TYPE { } + __TYPE { });
+        constexpr std::uint32 length = vec.c_size();
         vector<RESULT_TYPE> result;
-        result.resize((length > size) ? size : length);
+        result.resize((length > m_size) ? m_size : length);
 
-        if ( length > size ) {
-            for ( uint32_t i { 0u }; i < size; i++ ) {
-                array[i] *= static_cast<TYPE>(vec[i]);
-                result[i] = static_cast<RESULT_TYPE>(array[i]);
+        if ( length > m_size ) {
+            for ( std::uint32 i { 0 }; i < m_size; i++ ) {
+                m_selfArray[i] *= static_cast<__TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(m_selfArray[i]);
             }
-        } else if ( size > length ) {
-            for ( uint32_t i { 0u }; i < length; i++ ) {
-                array[i] *=  static_cast<TYPE>(vec[i]);
-                result[i] = static_cast<RESULT_TYPE>(array[i]);
+        } else if ( m_size > length ) {
+            for ( std::uint32 i { 0 }; i < length; i++ ) {
+                m_selfArray[i] *= static_cast<__TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(m_selfArray[i]);
             }
         } else {
-            for ( uint32_t i { 0u }; i < length; i++ ) {
-                array[i] *= static_cast<TYPE>(vec[i]);
-                result[i] = static_cast<RESULT_TYPE>(array[i]);
+            for ( std::uint32 i { 0 }; i < length; i++ ) {
+                m_selfArray[i] *= static_cast<__TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(m_selfArray[i]);
             }
         }
 
         return result;
     }
 
-
-    template < typename NUMBER_TYPE >
-    requires std::IS_INTEGRAL<TYPE> && std::IS_INTEGRAL<NUMBER_TYPE>
-    auto operator/ ( vector<NUMBER_TYPE> &vec ) noexcept
+    template < typename __NUMBER_TYPE >
+    requires std::IS_INTEGRAL<__TYPE> && std::IS_INTEGRAL<__NUMBER_TYPE>
+    consteval auto operator/ ( const vector& vec ) noexcept
     {
-        using RESULT_TYPE = decltype(TYPE{} + NUMBER_TYPE{});
-        constexpr uint32_t length = vec.len();
+        using RESULT_TYPE = decltype(__NUMBER_TYPE { } + __TYPE { });
+        constexpr std::uint32 length = vec.c_size();
         vector<RESULT_TYPE> result;
-        result.resize((length > size) ? size : length);
+        result.resize((length > m_size) ? m_size : length);
 
-        if ( length > size ) {
-            for ( uint32_t i { 0u }; i < size; i++ ) {
-                array[i] /= static_cast<TYPE>(vec[i]);
-                result[i] = static_cast<RESULT_TYPE>(array[i]);
+        if ( length > m_size ) {
+            for ( std::uint32 i { 0 }; i < m_size; i++ ) {
+                m_selfArray[i] /= static_cast<__TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(m_selfArray[i]);
             }
-        } else if ( size > length ) {
-            for ( uint32_t i { 0u }; i < length; i++ ) {
-                array[i] /=  static_cast<TYPE>(vec[i]);
-                result[i] = static_cast<RESULT_TYPE>(array[i]);
+        } else if ( m_size > length ) {
+            for ( std::uint32 i { 0 }; i < length; i++ ) {
+                m_selfArray[i] /= static_cast<__TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(m_selfArray[i]);
             }
         } else {
-            for ( uint32_t i { 0u }; i < length; i++ ) {
-                array[i] /= static_cast<TYPE>(vec[i]);
-                result[i] = static_cast<RESULT_TYPE>(array[i]);
+            for ( std::uint32 i { 0 }; i < length; i++ ) {
+                m_selfArray[i] /= static_cast<__TYPE>(vec[i]);
+                result[i] = static_cast<RESULT_TYPE>(m_selfArray[i]);
             }
         }
 
         return result;
-    }
-
-
-    static void destroy ( vector &vec )
-    {
-        delete vec;
     }
 };
 }
