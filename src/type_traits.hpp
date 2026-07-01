@@ -39,6 +39,10 @@ struct ISA_INTEGRAL<unsigned int> : INTEGRAL_CONSTANT<bool, true> { };
 template < typename TYPE >
 inline constexpr bool IS_INTEGRAL = ISA_INTEGRAL<TYPE>::VALUE;
 
+template < typename __TYPE >
+struct TYPE_IDENTITY {
+    using selfType = __TYPE;
+};
 }
 
 #endif
