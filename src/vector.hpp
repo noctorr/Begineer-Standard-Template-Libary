@@ -8,7 +8,7 @@
 
 namespace std {
 template < typename __TYPE >
-class vector
+class vector final
 {
     protected:
     __TYPE* m_selfArray { nullptr };
