@@ -6,6 +6,7 @@
 #ifndef VECTOR_HPP
 #define VECTOR_HPP
 
+// rewriting vector class for the fifth time now, there is major flaws and need to add an iterator
 namespace std {
 template < typename __TYPE >
 class vector final
