@@ -23,6 +23,7 @@ using uint8 = unsigned char;
 using uint16 = unsigned short;
 using uint64 = unsigned long long;
 
+// trying to work on a more performant and faster way to do this instead of using objects
 using uint32 = typename decltype([]{
     if constexpr (Check()) 
         return std::TYPE_IDENTITY<unsigned int>{ };
