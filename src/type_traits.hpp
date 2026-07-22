@@ -3,6 +3,59 @@
 
 namespace std {
 
+/*
+going to replace the current "INTEGRAL_CONSTANT" with this because the name actually makes more sense and it is more cleaner.
+template < bool val >
+    struct __Arithmetic_Static_Memory
+    {
+        static constexpr bool value = val;
+    };
+
+    template < typename __TYPE >
+    struct is_arithmetic : __Arithmetic_Static_Memory<false> {};
+
+    template <>
+    struct is_arithmetic<char> : __Arithmetic_Static_Memory<true> {};
+
+    template <>
+    struct is_arithmetic<short> : __Arithmetic_Static_Memory<true> {};
+
+    template <>
+    struct is_arithmetic<int> : __Arithmetic_Static_Memory<true> {};
+
+    template <>
+    struct is_arithmetic<long> : __Arithmetic_Static_Memory<true> {};
+
+    template <>
+    struct is_arithmetic<long long> : __Arithmetic_Static_Memory<true> {};
+
+    template <>
+    struct is_arithmetic<unsigned char> : __Arithmetic_Static_Memory<true> {};
+
+    template <>
+    struct is_arithmetic<unsigned short> : __Arithmetic_Static_Memory<true> {};
+
+    template <>
+    struct is_arithmetic<unsigned int> : __Arithmetic_Static_Memory<true> {};
+
+    template <>
+    struct is_arithmetic<unsigned long> : __Arithmetic_Static_Memory<true> {};
+
+    template <>
+    struct is_arithmetic<unsigned long long> : __Arithmetic_Static_Memory<true> {};
+
+    template <>
+    struct is_arithmetic<float> : __Arithmetic_Static_Memory<true> {};
+
+    template <>
+    struct is_arithmetic<double> : __Arithmetic_Static_Memory<true> {};
+
+    template <>
+    struct is_arithmetic<long double> : __Arithmetic_Static_Memory<true> {};
+
+    template < typename __TYPE >
+    static constexpr bool is_arithmetic_v = is_arithmetic<__TYPE>::value;
+*/
 template < class TYPE, TYPE VAL >
 struct INTEGRAL_CONSTANT
 {
